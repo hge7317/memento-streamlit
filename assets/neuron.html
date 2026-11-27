@@ -1,0 +1,62 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box}html,body{margin:0;overflow:hidden;font-family:'Pretendard',sans-serif;background:#90A3B4;color:#fff}
+.scene{position:relative;height:580px;overflow:hidden;background:#90A3B4;isolation:isolate}
+canvas{display:block;width:100%;height:100%;cursor:default;touch-action:pan-y}
+.top{position:absolute;top:25px;left:30px;right:30px;display:flex;justify-content:space-between;gap:24px;font-size:10px;font-weight:450;letter-spacing:.17em;color:#304a63b3;pointer-events:none}
+.top span:last-child{text-align:right}
+.copy{position:absolute;left:20px;right:20px;bottom:100px;text-align:center;pointer-events:none}
+.wordmark{font-size:clamp(74px,16vw,168px);font-weight:180;letter-spacing:-.075em;line-height:1.06;margin:0 0 20px;color:#243d55;text-shadow:0 3px 35px #dbeeff44}
+.tagline{font-family:'NanumSquareNeo','Pretendard',sans-serif;font-weight:350;font-size:clamp(15px,2.25vw,20px);letter-spacing:-.04em;margin:0;line-height:1.8;color:#2d4861}
+.bottom{position:absolute;bottom:25px;left:30px;right:30px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.status{max-width:300px;font-size:11px;font-weight:350;line-height:1.8;color:#314b64bd;letter-spacing:.02em;pointer-events:none}
+@media(max-width:500px){.top{top:22px;left:20px;right:20px;font-size:9px}.top span:last-child{max-width:120px}.bottom{bottom:22px;left:20px;right:20px;gap:8px}.status{max-width:130px;font-size:10px}.wordmark{margin-bottom:20px}.copy{bottom:115px}}
+</style></head><body><section class="scene" aria-label="어긋난 기억 조각이 맞춰지며 두 뉴런이 연결되는 메멘토 홈"><canvas role="img" aria-label="마우스를 움직이면 기억 조각이 따라 움직이고 잠시 머무르면 조각이 자연스럽게 정렬됩니다"></canvas><div class="top"><span>AI INTERVIEW REPLAY</span><span>REMEMBER.<br>RECONNECT.</span></div><div class="copy"><h1 class="wordmark">memento</h1><p class="tagline">흩어진 기억을, 나의 기록으로.</p></div><div class="bottom"><span class="status">마우스를 움직이면 흩어지고,<br>잠시 머무르면 하나로 이어집니다.</span></div></section><script>
+(()=>{'use strict';const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),art=document.createElement('canvas'),ink=art.getContext('2d');
+const reduced=matchMedia('(prefers-reduced-motion:reduce)');let w=900,h=580,dpr=1,t=0,last=0,frame=0,visible=true,mx=.5,my=.5,px=.5,py=.5,hover=false,alignment=0,pulse=-9,lastMove=0,settled=false;const TAU=Math.PI*2,N=19;
+const fract=n=>n-Math.floor(n),rnd=n=>fract(Math.sin(n*12.9898+78.233)*43758.5453),lerp=(a,b,u)=>a+(b-a)*u;
+function dot(c,x,y,r,color){c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill()}
+function path(c,a,b,cp1,cp2,color,width=1){c.beginPath();c.moveTo(...a);c.bezierCurveTo(...cp1,...cp2,...b);c.strokeStyle=color;c.lineWidth=width;c.stroke()}
+function glow(c,x,y,r,color){let g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'rgba(219,238,255,0)');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)}
+function texture(){const c=ink;c.clearRect(0,0,w,h);let bg=c.createLinearGradient(0,0,w,h);bg.addColorStop(0,'#90A3B4');bg.addColorStop(.28,'#b2c9dd');bg.addColorStop(.50,'#90A3B4');bg.addColorStop(.74,'#DBEEFF');bg.addColorStop(1,'#90A3B4');c.fillStyle=bg;c.fillRect(0,0,w,h);
+ // Long, blurred layers evoke light refracted through memory rather than a literal photo.
+ for(let i=0;i<11;i++){const x=w*(i/10-.03),width=w*(.06+rnd(i+2)*.17);let g=c.createLinearGradient(x,0,x+width,0);g.addColorStop(0,'rgba(8,23,36,0)');g.addColorStop(.38,`rgba(67,99,130,${.13+rnd(i)*.24})`);g.addColorStop(.55,'rgba(219,238,255,.24)');g.addColorStop(1,'rgba(8,23,36,0)');c.fillStyle=g;c.fillRect(x,-80,width,h+160)}
+ let mist=c.createLinearGradient(0,0,0,h);mist.addColorStop(0,'rgba(219,238,255,.28)');mist.addColorStop(.4,'rgba(144,163,180,.02)');mist.addColorStop(1,'rgba(144,163,180,.5)');c.fillStyle=mist;c.fillRect(0,0,w,h);
+ const y=h*.36;neuron(c,w*.18,y,1);neuron(c,w*.82,y,-1);
+ path(c,[w*.18,y],[w*.489,y+7],[w*.31,y-30],[w*.40,y+30],'rgba(226,237,236,.52)',1.3);
+ path(c,[w*.511,y+7],[w*.82,y],[w*.61,y-25],[w*.69,y+33],'rgba(226,237,236,.52)',1.3);
+ dot(c,w*.489,y+7,2.5,'#DBEEFF');dot(c,w*.511,y+7,2.5,'#DBEEFF');
+ // Fine grain stays fixed so the animation remains calm.
+ for(let i=0;i<10000;i++){dot(c,rnd(i+200)*w,rnd(i+20000)*h,.38,`rgba(236,243,243,${rnd(i+99)*.09})`)}
+}
+function neuron(c,x,y,side){const span=Math.min(w*.27,210);glow(c,x,y,span*.5,'rgba(219,238,255,.15)');
+ for(let i=0;i<12;i++){const angle=i/12*TAU+side*.16,length=span*(.55+rnd(i+side*3+90)*.52),ex=x+Math.cos(angle)*length,ey=y+Math.sin(angle)*length*.8;const c1=[x+Math.cos(angle+.3)*length*.30,y+Math.sin(angle+.3)*length*.26],c2=[x+Math.cos(angle-.24)*length*.74,y+Math.sin(angle-.24)*length*.7];path(c,[x,y],[ex,ey],c1,c2,'rgba(210,229,229,.43)',.7+rnd(i)*.5);
+ for(let j=0;j<3;j++){const u=.42+j*.19,bx=lerp(x,ex,u),by=lerp(y,ey,u),a=angle+(j%2?-.62:.65),l=length*(.24+rnd(j+i*5)*.18),tip=[bx+Math.cos(a)*l,by+Math.sin(a)*l];path(c,[bx,by],tip,[bx+Math.cos(a)*l*.4,by+Math.sin(a)*l*.3],[tip[0]-Math.cos(a+.2)*l*.2,tip[1]-Math.sin(a+.2)*l*.2],'rgba(201,223,224,.29)',.6);dot(c,...tip,1,'rgba(211,230,230,.6)')}
+ dot(c,ex,ey,1.4,'rgba(231,241,238,.77)')}
+ // An irregular, translucent cell body instead of the previous circular diagram.
+ c.beginPath();for(let i=0;i<=70;i++){const a=i/70*TAU,r=12+Math.sin(a*5+side)*2.7+Math.sin(a*3)*1.8;const xx=x+Math.cos(a)*r,yy=y+Math.sin(a)*r*.8;i?c.lineTo(xx,yy):c.moveTo(xx,yy)}c.fillStyle='rgba(218,235,234,.17)';c.fill();c.strokeStyle='rgba(225,237,237,.8)';c.lineWidth=.8;c.stroke();dot(c,x,y,3.1,'rgba(234,245,241,.9)');
+}
+function render(){ctx.clearRect(0,0,w,h);const band=w/N,y=h*.36;const parallax=(mx-.5)*20*(1-alignment);let flash=Math.max(0,1-(t-pulse)/2.5);
+ for(let i=0;i<N;i++){const offset=(Math.sin(i*1.72+mx*4.2+my*2.8)*36+(rnd(i+40)-.5)*58+Math.sin(i*.83+mx*8)*my*30)*(1-alignment);ctx.save();ctx.beginPath();ctx.rect(i*band,0,band+.7,h);ctx.clip();ctx.drawImage(art,0,art.height-1,art.width,1,0,0,w,h);if(offset>0)ctx.drawImage(art,0,0,art.width,1,0,0,w,offset);ctx.drawImage(art,0,0,art.width,art.height,parallax*(i/N-.5),offset,w,h);
+ // Alternate glass-like exposures and narrow silver edges.
+ ctx.fillStyle=`rgba(${i%3===0?'3,17,30':'228,237,237'},${(i%3===0?.15:.055)*(1-alignment)})`;ctx.fillRect(i*band,0,band,h);ctx.fillStyle=`rgba(228,237,237,${.09*(1-alignment)})`;ctx.fillRect(i*band,0,1,h);ctx.restore()}
+ const progress=fract(t*.14),sx=w*(.18+.64*progress),sy=y+7+Math.sin(progress*TAU)*7;glow(ctx,sx,sy,24,'rgba(219,238,255,.24)');dot(ctx,sx,sy,1.8,'#DBEEFF');
+ if(flash>0){glow(ctx,w*.5,y+7,75,'rgba(219,238,255,'+flash*.3+')');ctx.beginPath();ctx.arc(w*.5,y+7,7+(1-flash)*58,0,TAU);ctx.strokeStyle=`rgba(219,238,255,${flash*.65})`;ctx.lineWidth=.8;ctx.stroke()}
+ const shade=ctx.createLinearGradient(0,0,0,h);shade.addColorStop(0,'rgba(144,163,180,.10)');shade.addColorStop(.44,'rgba(144,163,180,.02)');shade.addColorStop(.72,'rgba(144,163,180,.25)');shade.addColorStop(1,'rgba(144,163,180,.65)');ctx.fillStyle=shade;ctx.fillRect(0,0,w,h)
+}
+function target(now){if(!hover)return .10;const idle=(now-lastMove)/1000;return Math.max(0,Math.min(1,(idle-.8)/2.1))}
+function loop(now){frame=0;if(!visible)return;const dt=last?Math.min((now-last)/1000,.06):.016;last=now;const goal=target(now),reduce=reduced.matches;
+ if(hover&&!reduce)t+=dt;
+ const ease=reduce?1:1-Math.exp(-dt*5);mx+=(px-mx)*ease;my+=(py-my)*ease;alignment+=(goal-alignment)*(reduce?1:1-Math.exp(-dt*3.2));
+ if(alignment>.97&&!settled){settled=true;pulse=t}else if(alignment<.85){settled=false}
+ render();if((hover&&(!reduce||now-lastMove<3800))||Math.abs(goal-alignment)>.001||Math.abs(px-mx)>.001||Math.abs(py-my)>.001)frame=requestAnimationFrame(loop)
+}
+function start(){if(!frame){last=0;frame=requestAnimationFrame(loop)}}
+function resize(){w=canvas.clientWidth;h=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);for(const c of [canvas,art]){c.width=w*dpr;c.height=h*dpr}ctx.setTransform(dpr,0,0,dpr,0,0);ink.setTransform(dpr,0,0,dpr,0,0);texture();render()}
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;
+ if(!hover||Math.hypot((nx-px)*w,(ny-py)*h)>1){lastMove=performance.now();px=nx;py=ny}hover=true;start()
+});
+canvas.addEventListener('pointerenter',()=>{hover=true;lastMove=performance.now();start()});
+canvas.addEventListener('pointerleave',()=>{hover=false;start()});
+reduced.addEventListener('change',()=>start());
+document.addEventListener('visibilitychange',()=>{visible=!document.hidden;if(visible)start()});new ResizeObserver(resize).observe(canvas);resize();start();
+})();</script></body></html>
